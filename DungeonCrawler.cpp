@@ -6,9 +6,9 @@
 #define STANDARD_LEVEL_HEIGHT 20
 
 // Colors
-const unsigned short BRIGHT_BLUE = FOREGROUND_BLUE | FOREGROUND_INTENSITY;
-const unsigned short BRIGHT_RED = FOREGROUND_RED | FOREGROUND_INTENSITY;
-const unsigned short BRIGHT_GREEN = FOREGROUND_GREEN | FOREGROUND_INTENSITY;
+const unsigned short BRIGHT_BLUE = 11;
+const unsigned short BRIGHT_RED = 12;
+const unsigned short BRIGHT_GREEN = 10;
 const unsigned short WHITE = 15;
 
 void setConsoleColour(unsigned short colour)
@@ -22,58 +22,32 @@ bool running = true;
 
 class Player{
     public:
-        char display = 'O';
+        char display = '$';
         // Putting this in one statement didn't work for some reason
         int x = 1;
         int y = 1;
         int health = 5;
+
+        bool isPlayerIn(int testingX, int testingY){
+            return x == testingX && y == testingY;
+        }
 };
 Player player;
-
-class HealthPack {
-    public:
-        int x, y;
-        char disp = 'H';
-    HealthPack(int _x, int _y, char _disp){
-        x = _x;
-        y = _y;
-        disp = _disp;
-    }
-};
 
 class Level{
     public:
         char selfDisplay[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH];
-        HealthPack * hPacks;
-        int healthNum; // Number of Health packs
-    Level(char _selfDisplay[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH], HealthPack * _hPacks, int _healthNum){
+    Level(char _selfDisplay[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH]){
         // For some reason I can't assign this directly
         for (int y = 0; y < STANDARD_LEVEL_HEIGHT; y++){
             for (int x = 0; x < STANDARD_LEVEL_WIDTH; x++){
                 selfDisplay[y][x] = _selfDisplay[y][x];
             }
         }
-        hPacks = _hPacks;
-        healthNum = _healthNum;
-    }
-    bool isYPosHealth(int y){
-        for (int i = 0; i < healthNum; i++){
-            if (y == hPacks[i].y){
-                return true;
-            }
-        }
-        return false;
-    }
-    bool isXPosHealth(int x){
-        for (int i = 0; i < healthNum; i++){
-            if (x == hPacks[i].x){
-                return true;
-            }
-        }
-        return false;
     }
 };
 
+char topAndBottom[STANDARD_LEVEL_WIDTH] = "###########################################################";
 
 char Level1Disp[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH] = {
     "###########################################################",
@@ -98,9 +72,6 @@ char Level1Disp[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH] = {
     "###########################################################"
 };
 
-HealthPack Level1HealthPacks[] = {
-    {55, 15, 'H'}
-};
 
 char LevelDefaultDisp[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH] = {
     "###########################################################",
@@ -111,97 +82,103 @@ char LevelDefaultDisp[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH] = {
     "#                                                         #",
     "#                                                         #",
     "#                                                         #",
+    "#                           X                             #",
+    "#                                                         #",
+    "#                           X                             #",
     "#                                                         #",
     "#                                                         #",
     "#                                                         #",
     "#                                                         #",
     "#                                                         #",
     "#                                                         #",
-    "#                                                         #",
-    "#                                                         #",
-    "#                                                         #",
-    "#                                                         #",
-    "#                                                         #",
+    "#                                                       HH#",
+    "#                                                       HH#",
     "###########################################################"
 };
+
 
 // The level that will be displayed on screen
 Level * dispLevel;
 
 void getInput(){
     char key = _getch();
+    int targetx = player.x;
+    int targety = player.y;
     if (key == 'w'){
-        if (dispLevel->selfDisplay[player.y - 1][player.x] == ' '){
-            player.y -= 1;
-        }
+        targety -= 1;
     }
     if (key == 's'){
-        if (dispLevel->selfDisplay[player.y + 1][player.x] == ' '){
-            player.y += 1;
-        }
+        targety += 1;
     }
     if (key == 'a'){
-        if (dispLevel->selfDisplay[player.y][player.x - 1] == ' '){
-            player.x -= 1;
-        }
+        targetx -= 1;
     }
     if (key == 'd'){
-        if (dispLevel->selfDisplay[player.y][player.x + 1] == ' '){
-            player.x += 1;
-        }
+        targetx += 1;
     }
     if (key == 'q'){
         running = false;
+    }
+    if (dispLevel->selfDisplay[targety][targetx] == ' '){
+        player.x = targetx;
+        player.y = targety;
+    } else if (dispLevel->selfDisplay[targety][targetx] == 'H'){
+        dispLevel->selfDisplay[targety][targetx] = ' ';
+        player.health++;
+        player.x = targetx;
+        player.y = targety;
+    } else if (dispLevel->selfDisplay[targety][targetx] == 'X'){
+        dispLevel->selfDisplay[targety][targetx] = ' ';
+        player.health--;
+        player.x = targetx;
+        player.y = targety;
     }
 }
 
 void draw(){
     system("CLS");
-    for (int y = 0; y < STANDARD_LEVEL_HEIGHT; y++){
-        for (int x = 0; x < STANDARD_LEVEL_WIDTH; x++){
-            if (y != player.y && !dispLevel->isYPosHealth(y)){
-                setConsoleColour(WHITE);
-                std::cout << dispLevel->selfDisplay[y];
-                break;
-            } else if (player.y == y && !dispLevel->isYPosHealth(y)){ // if just the player is on the line.
-                if (x != player.x){
-                    setConsoleColour(WHITE);
-                    putchar(dispLevel->selfDisplay[y][x]);
-                } else {
-                    setConsoleColour(BRIGHT_BLUE);
-                    putchar(player.display);
-                }
-            } else if (player.y != y && dispLevel->isYPosHealth(y)){ // If only a health pack is on the line
-                if (!dispLevel->isXPosHealth(x)){
-                    setConsoleColour(WHITE);
-                    putchar(dispLevel->selfDisplay[y][x]);
-                } else {
+    setConsoleColour(WHITE);
+    std::cout << topAndBottom << std::endl;
+    for (int y = 1; y < STANDARD_LEVEL_HEIGHT - 1; y++){
+        putchar('#');
+        for (int x = 1; x < STANDARD_LEVEL_WIDTH - 2; x++){
+            if (!player.isPlayerIn(x, y)){
+                if (dispLevel->selfDisplay[y][x] == 'H'){
                     setConsoleColour(BRIGHT_GREEN);
                     putchar('H');
-                }
-            } else { // if both
-                if (x != player.x && !dispLevel->isXPosHealth(x)){
+                } else if (dispLevel->selfDisplay[y][x] == 'X'){
+                    setConsoleColour(BRIGHT_RED);
+                    putchar('X');
+                } else {
                     setConsoleColour(WHITE);
                     putchar(dispLevel->selfDisplay[y][x]);
-                } else if (x == player.x){
-                    setConsoleColour(BRIGHT_BLUE);
-                    putchar(player.display);
-                } else if (dispLevel->isXPosHealth(x)){
-                    setConsoleColour(BRIGHT_GREEN);
-                    putchar('H');
                 }
+            } else {
+                setConsoleColour(BRIGHT_BLUE);
+                putchar(player.display);
             }
-        } // Seems like this above if statement could be optimized, but I'm to tired to fix rn
-          // This is probably he best way to expand with other items like chests and enemies though
-        putchar('\n');
+        }
+        setConsoleColour(WHITE);
+        putchar('#'); // the sides will always be #, so this makes it more efficient
+        putchar('\n'); // the entire line has been looped through so move to the next
     }
+    std::cout << topAndBottom;
+    setConsoleColour(BRIGHT_GREEN);
+    std::cout << "Health: " << player.health << std::endl; 
 }
 
 int main(){
-    setConsoleColour(BRIGHT_BLUE);
-    Level Level1(Level1Disp, Level1HealthPacks, 1);
+    // Setting console size
+    HWND console = GetConsoleWindow();
+    RECT ConsoleRect;
+    GetWindowRect(console, &ConsoleRect); 
+    MoveWindow(console, ConsoleRect.left, ConsoleRect.top, 510, 395, TRUE);
 
-    dispLevel = &Level1;
+    setConsoleColour(WHITE);
+    Level Level1(Level1Disp);
+    Level DefaultLevel(LevelDefaultDisp);
+
+    dispLevel = &DefaultLevel;
     while(running){
         // Drawing the level with the player inside
         draw();
