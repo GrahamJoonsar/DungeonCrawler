@@ -5,10 +5,17 @@
 #define STANDARD_LEVEL_WIDTH 60
 #define STANDARD_LEVEL_HEIGHT 20
 
+// Player : $
+// HealthPack : H
+// Enemy : X
+// Portal Entrance : @
+// Portal Exit : &
+
 // Colors
 const unsigned short BRIGHT_BLUE = 11;
 const unsigned short BRIGHT_RED = 12;
 const unsigned short BRIGHT_GREEN = 10;
+const unsigned short BRIGHT_YELLOW = 14;
 const unsigned short WHITE = 15;
 
 void setConsoleColour(unsigned short colour)
@@ -36,14 +43,23 @@ Player player;
 
 class Level{
     public:
+        const char *name;
         char selfDisplay[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH];
-    Level(char _selfDisplay[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH]){
+        int portalDestination; // The index of the level the portal goes to
+        int selfIndex;
+        int entranceX, entranceY;
+    Level(char _selfDisplay[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH], const char * _name, int _portalDestination, int _newX, int _newY, int _selfIndex){
         // For some reason I can't assign this directly
         for (int y = 0; y < STANDARD_LEVEL_HEIGHT; y++){
             for (int x = 0; x < STANDARD_LEVEL_WIDTH; x++){
                 selfDisplay[y][x] = _selfDisplay[y][x];
             }
         }
+        name = _name;
+        entranceX = _newX;
+        entranceY = _newY;
+        portalDestination = _portalDestination;
+        selfIndex = _selfIndex;
     }
 };
 
@@ -51,7 +67,7 @@ char topAndBottom[STANDARD_LEVEL_WIDTH] = "#####################################
 
 char Level1Disp[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH] = {
     "###########################################################",
-    "#           ###         ###         ###                   #",
+    "#&          ###         ###         ###                   #",
     "#           ###         ###         ###                   #",
     "#           ###         ###         ###                   #",
     "#           ###         ###         ###                   #",
@@ -68,14 +84,14 @@ char Level1Disp[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH] = {
     "#     ###         ###         ###         ###             #",
     "#     ###         ###         ###         ###             #",
     "#     ###         ###         ###         ###             #",
-    "#     ###         ###         ###         ###             #",
+    "#     ###         ###         ###         ###            @#",
     "###########################################################"
 };
 
 
 char LevelDefaultDisp[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH] = {
     "###########################################################",
-    "#                                                         #",
+    "#&                                                        #",
     "#                                                         #",
     "#                                                         #",
     "#                                                         #",
@@ -83,7 +99,7 @@ char LevelDefaultDisp[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH] = {
     "#                                                         #",
     "#                                                         #",
     "#                           X                             #",
-    "#                                                         #",
+    "#            @                                            #",
     "#                           X                             #",
     "#                                                         #",
     "#                                                         #",
@@ -100,26 +116,31 @@ char LevelDefaultDisp[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH] = {
 // The level that will be displayed on screen
 Level * dispLevel;
 
+Level MazeLevel(Level1Disp, "Maze", 0, 1, 1, 1);
+Level EmptyLevel(LevelDefaultDisp, "Empty Level", 1, 1, 1, 0);
+
+Level allLevels[] = {EmptyLevel, MazeLevel};
+
 void getInput(){
     char key = _getch();
     int targetx = player.x;
     int targety = player.y;
     if (key == 'w'){
-        targety -= 1;
+        targety--;
     }
     if (key == 's'){
-        targety += 1;
+        targety++;
     }
     if (key == 'a'){
-        targetx -= 1;
+        targetx--;
     }
     if (key == 'd'){
-        targetx += 1;
+        targetx++;
     }
     if (key == 'q'){
         running = false;
     }
-    if (dispLevel->selfDisplay[targety][targetx] == ' '){
+    if (dispLevel->selfDisplay[targety][targetx] == ' ' || dispLevel->selfDisplay[targety][targetx] == '&'){
         player.x = targetx;
         player.y = targety;
     } else if (dispLevel->selfDisplay[targety][targetx] == 'H'){
@@ -132,6 +153,12 @@ void getInput(){
         player.health--;
         player.x = targetx;
         player.y = targety;
+    } else if (dispLevel->selfDisplay[targety][targetx] == '@'){
+        allLevels[dispLevel->selfIndex] = *dispLevel; // This saves what the player did in the level
+        *dispLevel = allLevels[dispLevel->portalDestination]; // this updates the level
+
+        player.x = dispLevel->entranceX;  // Setting the player xPos
+        player.y = dispLevel->entranceY; // Setting the player yPos
     }
 }
 
@@ -149,6 +176,9 @@ void draw(){
                 } else if (dispLevel->selfDisplay[y][x] == 'X'){
                     setConsoleColour(BRIGHT_RED);
                     putchar('X');
+                } else if (dispLevel->selfDisplay[y][x] == '@' || dispLevel->selfDisplay[y][x] == '&'){
+                    setConsoleColour(BRIGHT_YELLOW);
+                    putchar(dispLevel->selfDisplay[y][x]);
                 } else {
                     setConsoleColour(WHITE);
                     putchar(dispLevel->selfDisplay[y][x]);
@@ -164,7 +194,9 @@ void draw(){
     }
     std::cout << topAndBottom;
     setConsoleColour(BRIGHT_GREEN);
-    std::cout << "Health: " << player.health << std::endl; 
+    std::cout << "Health: " << player.health;
+    setConsoleColour(WHITE);
+    std::cout << "  |  Level: " << dispLevel->name << std::endl;
 }
 
 int main(){
@@ -175,10 +207,7 @@ int main(){
     MoveWindow(console, ConsoleRect.left, ConsoleRect.top, 510, 395, TRUE);
 
     setConsoleColour(WHITE);
-    Level Level1(Level1Disp);
-    Level DefaultLevel(LevelDefaultDisp);
-
-    dispLevel = &DefaultLevel;
+    dispLevel = &MazeLevel;
     while(running){
         // Drawing the level with the player inside
         draw();
