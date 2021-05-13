@@ -103,16 +103,16 @@ char Level1Disp[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH] = {
     "###########################################################",
     "#&          ###         ###         ###                   #",
     "#           ###         ###         ###                   #",
-    "#@          ###         ###         ###                   #",
     "#           ###         ###         ###                   #",
     "#           ###         ###         ###                   #",
+    "#           ###         ###         ###                   #",
     "#     ###   ###   ###   ###   ###   ###   ###             #",
     "#     ###   ###   ###   ###   ###   ###   ###             #",
     "#     ###   ###   ###   ###   ###   ###   ###             #",
     "#     ###   ###   ###   ###   ###   ###   ###             #",
     "#     ###   ###   ###   ###   ###   ###   ###             #",
     "#     ###   ###   ###   ###   ###   ###   ###             #",
-    "#     ###   ###   ###   ###   ###   ###   ###             #",
+    "#     ###   ###   ###   ###   ###   ###   ###     X       #",
     "#     ###   ###   ###   ###   ###   ###   ###             #",
     "#     ###         ###         ###         ###             #",
     "#     ###         ###         ###         ###             #",
@@ -132,16 +132,16 @@ char LevelDefaultDisp[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH] = {
     "#                                                         #",
     "#                                                         #",
     "#                                                         #",
-    "#                                                         #",
-    "#                           X X                           #",
-    "#            @              X X                           #",
-    "#                           X X                           #",
+    "#                           X                             #",
+    "#            @                              X             #",
     "#                                                         #",
     "#                                                         #",
     "#                                                         #",
     "#                                                         #",
+    "#              X                                          #",
     "#                                                         #",
     "#                                X                        #",
+    "#                                                         #",
     "#                                                       HH#",
     "#                                                       HH#",
     "###########################################################"
@@ -159,12 +159,13 @@ Level EmptyLevel(LevelDefaultDisp, "Empty Level", 1, 1, 1, 0);
 // The list of all levels // used for changing between levels
 Level allLevels[] = {EmptyLevel, MazeLevel};
 
+// This should be done
 void updateEnemies(){
+    bool cantMoveOnX[STANDARD_LEVEL_WIDTH];
     for (int y = 1; y < STANDARD_LEVEL_HEIGHT - 1; y++){ // For every char in the level
         // These are used for stopping the loop from moving the enemies more than once per player movement
         bool wentRight = false;
-        bool wentDown = false;
-        for (int x = 0; x < STANDARD_LEVEL_WIDTH - 1; x++){
+        for (int x = 1; x < STANDARD_LEVEL_WIDTH - 1; x++){
             if (dispLevel->selfDisplay[y][x] == 'X' && roundNum % 3 == 0){ // If enemy // Updates every 3 rounds
                 int targetX = x;
                 int targetY = y;
@@ -174,32 +175,37 @@ void updateEnemies(){
                     targetX += 1;
                 } else if (y > player.y && dispLevel->selfDisplay[y - 1][x] == ' '){ // Move up
                     targetY -= 1;
-                } else if (y < player.y && dispLevel->selfDisplay[y + 1][x] == ' '){ // move down
+                } else if (y < player.y && dispLevel->selfDisplay[y + 1][x] == ' ' && !cantMoveOnX[targetX]){ // move down
                     targetY += 1;
                 }
+
                 dispLevel->selfDisplay[y][x] = ' ';
                 
+                if (wentRight){
+                    targetX = x;
+                }
+                /*
+                 * The reason that I can't do the same thing with the Y as the X to stop the for loops
+                 * from updating the enemies multiple times per round is because the X updates faster than the Y
+                 * So I have to use an array of booleans to check if the Enemy on a specific X moved down on the previous for X loop.
+                 */
+                if (cantMoveOnX[targetX]){
+                    cantMoveOnX[targetX] = false;
+                }
                 // If the player isn't where the enemy wants to move
                 if (!player.isPlayerIn(targetX, targetY)){
-                    if (wentRight){
-                        targetX -= 1;
-                    }
-                    if (wentDown){
-                        targetY -= 1;
-                    }
                     dispLevel->selfDisplay[targetY][targetX] = 'X';
                 } else {
                     player.health -= 1;
                 }
 
                 wentRight = false;
-                wentDown = false;
 
                 if (targetX > x){
                     wentRight = true;
                 }
                 if (targetY > y){
-                    wentDown = true;
+                    cantMoveOnX[targetX] = true;
                 }
             }
         }
@@ -207,6 +213,7 @@ void updateEnemies(){
 }
 
 // Getting the player's input from the keyboard
+// Also should be done
 void getInput(){
     // Gets what the player pressed
     char key = _getch();
@@ -245,6 +252,7 @@ void getInput(){
     }
 }
 
+// Probably done
 void draw(){
     // Clearing the console
     system("CLS");
@@ -310,6 +318,7 @@ int main(){
             // Drawing the level with the player inside
             draw();
         }
-
     }
-}
+    
+    // TODO:
+    // Add a sword attack for the player
