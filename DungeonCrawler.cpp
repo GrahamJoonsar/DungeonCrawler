@@ -10,6 +10,10 @@
  * A text based dungeon crawler written in  *
  * C++.                                     *
  *                                          *
+ * WASD to move Q to exit                   *
+ *                                          *
+ *                                          *
+ *                                          *
  * Author: Graham Joonsar                   *
  * ******************************************/
 
@@ -25,6 +29,7 @@ const unsigned short BRIGHT_BLUE = 11;
 const unsigned short BRIGHT_RED = 12;
 const unsigned short BRIGHT_GREEN = 10;
 const unsigned short BRIGHT_YELLOW = 14;
+const unsigned short BRIGHT_PINK = 13;
 const unsigned short WHITE = 15;
 
 /* This functions sets the color of the characters outputted to the console */
@@ -39,6 +44,8 @@ void setConsoleColour(unsigned short colour)
 bool running = true;
 // The round number // Used for moving the enemies every three rounds
 long int roundNum = 0;
+// This is for making the olayer sword disapear after 1 frame
+bool playerAttacked = false;
 
 // This is the main player class
 class Player{
@@ -219,20 +226,40 @@ void getInput(){
     char key = _getch();
     int targetx = player.x;
     int targety = player.y;
+    // Movement
     if (key == 'w'){
         targety--;
     }
-    if (key == 's'){
+    else if (key == 's'){
         targety++;
     }
-    if (key == 'a'){
+    else if (key == 'a'){
         targetx--;
     }
-    if (key == 'd'){
+    else if (key == 'd'){
         targetx++;
     }
-    if (key == 'q'){
+    else if (key == 'q'){
         running = false;
+    }
+    // Sword Input
+    if (!playerAttacked){ // If the player didn't attack the previous turn
+        if (key == 'i' && (dispLevel->selfDisplay[player.y - 1][player.x] == 'X' || dispLevel->selfDisplay[player.y - 1][player.x] == ' ')){
+            dispLevel->selfDisplay[player.y - 1][player.x] = '|';
+            playerAttacked = true;
+        }
+        if (key == 'k' && (dispLevel->selfDisplay[player.y + 1][player.x] == 'X' || dispLevel->selfDisplay[player.y + 1][player.x] == ' ')){
+            dispLevel->selfDisplay[player.y + 1][player.x] = '|';
+            playerAttacked = true;
+        }
+        if (key == 'j' && (dispLevel->selfDisplay[player.y][player.x - 1] == 'X' || dispLevel->selfDisplay[player.y][player.x - 1] == ' ')){
+            dispLevel->selfDisplay[player.y][player.x - 1] = '-';
+            playerAttacked = true;
+        }
+        if (key == 'l' && (dispLevel->selfDisplay[player.y][player.x + 1] == 'X' || dispLevel->selfDisplay[player.y][player.x + 1] == ' ')){
+            dispLevel->selfDisplay[player.y][player.x + 1] = '-';
+            playerAttacked = true;
+        }
     }
     // If where the player wants to move is empty space or a portal exit
     if (dispLevel->selfDisplay[targety][targetx] == ' ' || dispLevel->selfDisplay[targety][targetx] == '&'){
@@ -273,6 +300,15 @@ void draw(){
                 } else if (currentChar == '@' || currentChar == '&'){
                     setConsoleColour(BRIGHT_YELLOW);
                     putchar(currentChar);
+                } else if (currentChar == '|' || currentChar == '-'){
+                    if (playerAttacked){
+                        setConsoleColour(BRIGHT_PINK);
+                        putchar(currentChar);
+                        playerAttacked = false;
+                    } else {
+                        dispLevel->selfDisplay[y][x] = ' ';
+                        putchar(' ');
+                    }
                 } else {
                     setConsoleColour(WHITE);
                     putchar(currentChar);
@@ -300,6 +336,8 @@ int main(){
     GetWindowRect(console, &ConsoleRect); 
     MoveWindow(console, ConsoleRect.left, ConsoleRect.top, 510, 395, TRUE);
 
+    system("title Dungeon Crawler!"); // Setting the title of the command prompt
+
     setConsoleColour(WHITE);
     // Setting the starter level to the maze level
     dispLevel = &MazeLevel;
@@ -322,3 +360,4 @@ int main(){
     
     // TODO:
     // Add a sword attack for the player
+}
