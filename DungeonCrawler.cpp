@@ -5,6 +5,9 @@
 #define STANDARD_LEVEL_WIDTH 60
 #define STANDARD_LEVEL_HEIGHT 20
 
+// Compiler command:
+// g++ -static-libgcc -static-libstdc++ DungeonCrawler.cpp -o DungeonCrawler.exe
+
 /********************************************
  *              Dungeon Crawler             *
  * A text based dungeon crawler written in  *
@@ -39,6 +42,8 @@ void setConsoleColour(unsigned short colour)
     std::cout.flush();
     SetConsoleTextAttribute(hOut, colour);
 }
+
+const char w = 178;
 
 // This is what causes the main game loop
 bool running = true;
@@ -154,6 +159,29 @@ char LevelDefaultDisp[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH] = {
     "###########################################################"
 };
 
+char LaserLevelDisp[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH] = {
+    "###########################################################",
+    "#&                                                        #",
+    "#                                                         #",
+    "#                                                         #",
+    "#                                                         #",
+    "#                                                         #",
+    "#                                                         #",
+    "#                                                         #",
+    "#               >                                  <      #",
+    "#                                                         #",
+    "#                                                         #",
+    "#                                                         #",
+    "#>                        <                               #",
+    "#                                                         #",
+    "#                                                         #",
+    "#                            @                            #",
+    "#                                                         #",
+    "#                                                         #",
+    "#                                                         #",
+    "###########################################################"
+};
+
 
 // The level that will be displayed on screen
 Level * dispLevel;
@@ -161,18 +189,22 @@ Level * dispLevel;
 // The maze level
 Level MazeLevel(Level1Disp, "Maze", 0, 1, 1, 1);
 // The default empty level
-Level EmptyLevel(LevelDefaultDisp, "Empty Level", 1, 1, 1, 0);
+Level EmptyLevel(LevelDefaultDisp, "Empty Level", 2, 1, 1, 0);
+// the level with lasers
+Level LaserLevel(LaserLevelDisp, "Laser level", 1, 1, 1, 2);
 
 // The list of all levels // used for changing between levels
-Level allLevels[] = {EmptyLevel, MazeLevel};
+Level allLevels[] = {EmptyLevel, MazeLevel, LaserLevel};
 
 // This should be done
 void updateEnemies(){
     bool cantMoveOnX[STANDARD_LEVEL_WIDTH];
+    bool isLasering = false;
     for (int y = 1; y < STANDARD_LEVEL_HEIGHT - 1; y++){ // For every char in the level
         // These are used for stopping the loop from moving the enemies more than once per player movement
         bool wentRight = false;
         for (int x = 1; x < STANDARD_LEVEL_WIDTH - 1; x++){
+            // Enemy movement code
             if (dispLevel->selfDisplay[y][x] == 'X' && roundNum % 3 == 0){ // If enemy // Updates every 3 rounds
                 int targetX = x;
                 int targetY = y;
@@ -214,8 +246,23 @@ void updateEnemies(){
                 if (targetY > y){
                     cantMoveOnX[targetX] = true;
                 }
+            // Laser code
+            } else if (dispLevel->selfDisplay[y][x] == '>'){
+                isLasering = true;
+            } else if (dispLevel->selfDisplay[y][x] == '<'){
+                isLasering = false;
+            } else if (isLasering && roundNum % 5 == 0){
+                if (!player.isPlayerIn(x, y)){
+                    dispLevel->selfDisplay[y][x] = '~';
+                } else {
+                    player.health--;
+                    isLasering = false;
+                }
+            } else if (isLasering){
+                dispLevel->selfDisplay[y][x] = ' ';
             }
         }
+        //isLasering = false;
     }
 }
 
@@ -248,15 +295,15 @@ void getInput(){
             dispLevel->selfDisplay[player.y - 1][player.x] = '|';
             playerAttacked = true;
         }
-        if (key == 'k' && (dispLevel->selfDisplay[player.y + 1][player.x] == 'X' || dispLevel->selfDisplay[player.y + 1][player.x] == ' ')){
+        else if (key == 'k' && (dispLevel->selfDisplay[player.y + 1][player.x] == 'X' || dispLevel->selfDisplay[player.y + 1][player.x] == ' ')){
             dispLevel->selfDisplay[player.y + 1][player.x] = '|';
             playerAttacked = true;
         }
-        if (key == 'j' && (dispLevel->selfDisplay[player.y][player.x - 1] == 'X' || dispLevel->selfDisplay[player.y][player.x - 1] == ' ')){
+        else if (key == 'j' && (dispLevel->selfDisplay[player.y][player.x - 1] == 'X' || dispLevel->selfDisplay[player.y][player.x - 1] == ' ')){
             dispLevel->selfDisplay[player.y][player.x - 1] = '-';
             playerAttacked = true;
         }
-        if (key == 'l' && (dispLevel->selfDisplay[player.y][player.x + 1] == 'X' || dispLevel->selfDisplay[player.y][player.x + 1] == ' ')){
+        else if (key == 'l' && (dispLevel->selfDisplay[player.y][player.x + 1] == 'X' || dispLevel->selfDisplay[player.y][player.x + 1] == ' ')){
             dispLevel->selfDisplay[player.y][player.x + 1] = '-';
             playerAttacked = true;
         }
@@ -309,6 +356,9 @@ void draw(){
                         dispLevel->selfDisplay[y][x] = ' ';
                         putchar(' ');
                     }
+                } else if (currentChar == '>' || currentChar == '<'){
+                    setConsoleColour(BRIGHT_YELLOW);
+                    putchar(currentChar);
                 } else {
                     setConsoleColour(WHITE);
                     putchar(currentChar);
@@ -326,7 +376,8 @@ void draw(){
     setConsoleColour(BRIGHT_GREEN);
     std::cout << "Health: " << player.health;
     setConsoleColour(WHITE);
-    std::cout << "  |  Level: " << dispLevel->name << std::endl;
+    std::cout << "  |  Level: " << dispLevel->name << '\n';
+    std::cout.flush();
 }
 
 int main(){
@@ -342,8 +393,9 @@ int main(){
     // Setting the starter level to the maze level
     dispLevel = &MazeLevel;
     // Drawing the Welcome screen
-    std::cout << "Welcome to DungeonCrawler\n";
-    std::cout << "Press any key to start\n";
+    std::cout << "Welcome to DungeonCrawler" << std::endl;
+    std::cout << "Use WASD to move, IJKL to use your sword" << std::endl;
+    std::cout << "Press any key to start (besides q)" << std::endl;
     while(running){
         if (_kbhit()){ // If a key is pressed
             roundNum++;
@@ -357,7 +409,7 @@ int main(){
             draw();
         }
     }
-    
-    // TODO:
-    // Add a sword attack for the player
+    system("CLS");
+    std::cout << "You died!" << std::endl;
+    system("pause");
 }
