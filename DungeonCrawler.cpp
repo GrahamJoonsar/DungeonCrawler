@@ -178,7 +178,7 @@ char LaserLevelDisp[STANDARD_LEVEL_HEIGHT][STANDARD_LEVEL_WIDTH] = {
     "#                            @                            #",
     "#                                                         #",
     "#                                                         #",
-    "#                                                         #",
+    "#     X                                                   #",
     "###########################################################"
 };
 
@@ -197,6 +197,7 @@ Level LaserLevel(LaserLevelDisp, "Laser level", 1, 1, 1, 2);
 Level allLevels[] = {EmptyLevel, MazeLevel, LaserLevel};
 
 // This should be done
+// Updates enemies and lasers
 void updateEnemies(){
     bool cantMoveOnX[STANDARD_LEVEL_WIDTH];
     bool isLasering = false;
@@ -258,7 +259,7 @@ void updateEnemies(){
                     player.health--;
                     isLasering = false;
                 }
-            } else if (isLasering){
+            } else if (isLasering && roundNum % 5 == 1){ // after the laser was fired
                 dispLevel->selfDisplay[y][x] = ' ';
             }
         }
@@ -290,7 +291,7 @@ void getInput(){
         running = false;
     }
     // Sword Input
-    if (!playerAttacked){ // If the player didn't attack the previous turn
+    if (true){ // If the player didn't attack the previous turn
         if (key == 'i' && (dispLevel->selfDisplay[player.y - 1][player.x] == 'X' || dispLevel->selfDisplay[player.y - 1][player.x] == ' ')){
             dispLevel->selfDisplay[player.y - 1][player.x] = '|';
             playerAttacked = true;
