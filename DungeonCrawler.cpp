@@ -1,1 +1,5 @@
-// Didnt like the way it was structured so starting over.
+# include <iostream>
+
+int main(){
+    std::cout << "Hello World!" << std::endl;
+}
