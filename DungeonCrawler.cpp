@@ -85,23 +85,22 @@ class Enemy{
             y = _y;
         }
 
-        void move(char DispLevel[][60], Player * p){
-            int targy = y, targx = x;
-            if (p->y < y){ // Moving up
-                targy--;
-            } else if (p->y > y){
-                targy++;
-            } else if (p->x < x){
-                targx--;
-            } else {
-                targx++;
-            }
-            if (DispLevel[targy][targx] == ' '){ // Clear space
-                x = targx;
-                y = targy;
-            } else if (p->x == x && p->y == y){ // Player
-                p->health--;
-                dead = true;
+        void move(char DispLevel[][60], Player * p){ // Movig the enemy legally
+            if (turnNumber % 3 == 0){ // Every three times the player moves
+                int targy = y, targx = x;
+                if (p->y < y){ // Moving up
+                    targy--;
+                } else if (p->y > y){
+                    targy++;
+                } else if (p->x < x){
+                    targx--;
+                } else {
+                    targx++;
+                }
+                if (DispLevel[targy][targx] == ' '){ // Clear space
+                    x = targx;
+                    y = targy;
+                }
             }
         }
 };
@@ -126,11 +125,14 @@ struct Level{
             ENum = _en;
         }
 
-        bool EnemyAt(int x, int y){ // Checking if an enemy is at a position
+        bool EnemyAt(int x, int y, int * eIndex){ // Checking if an enemy is at a position
             for (int i = 0; i < ENum; i++){
                 if (enemies[i].x != x){
                     continue;
                 } else {
+                    if (eIndex != nullptr){
+                        *eIndex = i;
+                    }
                     return enemies[i].y == y && !enemies[i].dead;
                 }
             }
@@ -168,7 +170,7 @@ void DrawToConsole(Level * leveltoDraw, Player * p){
             } else if (currentChar == 'H'){
                 setConsoleColour(BRIGHT_GREEN);
                 std::cout << 'H';
-            } else if (leveltoDraw->EnemyAt(x, y)){
+            } else if (leveltoDraw->EnemyAt(x, y, nullptr)){
                 setConsoleColour(BRIGHT_RED);
                 std::cout << 'X';
             } else {
@@ -194,6 +196,14 @@ void DrawToConsole(Level * leveltoDraw, Player * p){
 Level * currentLevel;
 Player player;
 
+void decrPlayerHealth(){
+    int enemyIndex;
+    if (currentLevel->EnemyAt(player.x, player.y, &enemyIndex)){
+        currentLevel->enemies[enemyIndex].dead = true;
+        player.health--;
+    }
+}
+
 int main(){
     currentLevel = &Test; // Setting the level
     
@@ -214,10 +224,12 @@ int main(){
 
     while (running){ // Main game loop
         if (_kbhit()){ // Key pressed
+            turnNumber++;
             player.ProccessInput(_getch(), currentLevel->DispLevel); // Proccess the input
             for (int i = 0; i < currentLevel->ENum; i++){
                 currentLevel->enemies[i].move(currentLevel->DispLevel, &player);
             }
+            decrPlayerHealth(); // Decrement player health (if neccessary)
             DrawToConsole(currentLevel, &player); // Drawing the level to console
             ClearConsole(); // Clearing the console without flicker
         }
